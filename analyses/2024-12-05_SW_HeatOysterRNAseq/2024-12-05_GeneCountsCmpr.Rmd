@@ -1,0 +1,82 @@
+---
+title: "qPCR data analysis"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+load libraries
+```{r}
+library(readxl)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggpubr)
+library(plotrix)
+library(mgcv)
+library(ggsci)
+library(gplots)
+
+
+
+```
+
+
+read in data
+
+```{r}
+#July 25 data
+rob_counts <- read.csv("gene_count_matrix (1).csv")
+
+nfcore_counts <- read_xlsx("salmon_merged_gene_counts.xlsx")
+
+meta_data <- read.csv("SraRunTable.csv")
+```   
+
+tidy data
+```{r}
+rob_counts_l <- rob_counts %>% pivot_longer(2:ncol(rob_counts), names_to = "Library.Name", values_to = "counts")
+
+nfcore_counts_l <- nfcore_counts %>% pivot_longer(3:ncol(nfcore_counts), names_to = "Experiment", values_to = "counts")
+
+rob_counts_l <- merge(meta_data[,c("Experiment", "Library.Name", "family", "timepoint..day.","trait")], rob_counts_l, by = "Library.Name")
+
+nfcore_counts_l <- merge(meta_data[,c("Experiment", "Library.Name", "family", "timepoint..day.","trait")],nfcore_counts_l, by = "Experiment")
+
+rob_counts_l$method <- "old"
+nfcore_counts_l$method <- "nf-core"
+
+nfcore_counts_l$gene_name <- NULL
+
+all_data <- rbind(rob_counts_l,nfcore_counts_l)
+
+excluded <- c("Os22", "Os23", "Os24", "Os25", "Os26","Os27", "Os4", "Os5", "Os6", "Os7", "Os8", "Os9")
+```
+
+
+
+#plot histograms for each library
+```{r}
+jpeg("histograms.jpg", width = 7, height = 5, units = "in", res = 300)
+all_data %>% filter(!(Library.Name %in% excluded))%>% ggplot(aes(log10(counts), fill = method)) + geom_histogram() + labs(x = "counts (log10)", y = "# genes") + theme_bw() + facet_wrap(~Library.Name)
+dev.off()
+```
+
+#make heatmap
+
+```{r}
+Rmatrix <- as.matrix(rob_counts[,!(colnames(rob_counts)%in%excluded)] %>% dplyr::select(-gene_id) )
+
+Nmatrix <- as.matrix(nfcore_counts[,!(colnames(nfcore_counts)%in%excluded)]  %>% dplyr::select(-gene_id) %>% dplyr::select(-gene_name))
+
+
+
+Rmatrix <- Rmatrix[rowSums(Rmatrix[])>0,]
+Nmatrix <- Nmatrix[rowSums(Nmatrix[])>0,]
+Rmatrix[Rmatrix==0] <- 0.5
+Nmatrix[Nmatrix==0] <- 0.5
+
+heatmap.2(log10(Rmatrix), dendrogram = "both", tracecol = NA)
+  
+```  
+
