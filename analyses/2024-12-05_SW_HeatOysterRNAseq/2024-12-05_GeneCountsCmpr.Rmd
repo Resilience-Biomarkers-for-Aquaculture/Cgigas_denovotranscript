@@ -159,7 +159,7 @@ all_sub_data$zero_cat[which(all_sub_data$old!=0 & all_sub_data$`nf-core`==0)] <-
 all_sub_data$zero_cat[which(all_sub_data$old!=0 & all_sub_data$`nf-core`!=0)] <- "both_non0"
 
 
-jpeg("hist_zeroVSnonzeros.jpg", width = 5, height = 4, units = "in", res = 300)
+jpeg("hist_zeroVSnonzeros.jpg", width = 8, height = 3, units = "in", res = 300)
 all_sub_data %>% filter(zero_cat != "both0" & zero_cat !="both_non0") %>% pivot_longer(7:8, names_to = "method", values_to = "count")%>% filter(count !=0) %>%ggplot(aes(x = log10(count), fill = zero_cat)) + geom_histogram(position = position_dodge()) + theme_bw() + labs(x = "counts(log10)", y= "# genes", fill = "method") + ggtitle("Genes with 0 counts in one method and non-zero in the other\n (9,065 non-zero in Emma's and 796 non-zero in Roberto's only)")
 dev.off()
 
